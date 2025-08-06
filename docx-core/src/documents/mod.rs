@@ -141,6 +141,7 @@ pub struct Docx {
     // reader only
     pub hyperlinks: Vec<(String, String, String)>,
     pub footnotes: Footnotes,
+    pub default_section: Option<SectionProperty>
 }
 
 impl Default for Docx {
@@ -159,6 +160,7 @@ impl Default for Docx {
         let comments_extended = CommentsExtended::new();
         let web_settings = WebSettings::new();
         let footnotes = Footnotes::default();
+        let default_section = None;
 
         Docx {
             content_type,
@@ -184,6 +186,7 @@ impl Default for Docx {
             images: vec![],
             hyperlinks: vec![],
             footnotes,
+            default_section
         }
     }
 }
@@ -191,6 +194,13 @@ impl Default for Docx {
 impl Docx {
     pub fn new() -> Docx {
         Default::default()
+    }
+
+    /// Set the *initial* section properties for the very first <w:sectPr>
+    /// (page size, margins, etc).
+    pub fn default_section_property(mut self, prop: SectionProperty) -> Self {
+        self.document = self.document.default_section_property(prop);
+        self
     }
 
     pub fn document(mut self, d: Document) -> Docx {

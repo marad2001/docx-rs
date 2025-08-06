@@ -12,6 +12,7 @@ pub struct Document {
     pub children: Vec<DocumentChild>,
     pub section_property: SectionProperty,
     pub has_numbering: bool,
+    pub initial_section_property: Option<SectionProperty>
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -90,6 +91,7 @@ impl Default for Document {
             children: Vec::new(),
             section_property: SectionProperty::new(),
             has_numbering: false,
+            initial_section_property: None
         }
     }
 }
@@ -97,6 +99,11 @@ impl Default for Document {
 impl Document {
     pub fn new() -> Document {
         Default::default()
+    }
+
+    pub fn initial_section_property(mut self, property: SectionProperty) -> Self {
+        self.initial_section_property = Some(property);
+        self
     }
 
     pub fn add_paragraph(mut self, p: Paragraph) -> Self {
@@ -269,7 +276,11 @@ impl BuildXML for Document {
             .open_document()?
             .open_body()?
             .add_children(&self.children)?
-            .add_child(&self.section_property)?
+            .maybe_add_child(
+                self.initial_section_property
+                    .as_ref()
+                    .or(Some(&self.section_property))
+            )?
             .close()?
             .close()?
             .into_inner()

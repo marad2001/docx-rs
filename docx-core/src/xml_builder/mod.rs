@@ -198,6 +198,17 @@ impl<W: Write> XMLBuilder<W> {
         )?
         .close()
     }
+
+    pub(crate) fn maybe_add_child<T: BuildXML> (
+        mut self,
+        child: Option<&T>
+    )-> xml::writer::Result<Self> {
+        if let Some(c) = child {
+            self = self.add_child(c)?;
+        }
+        Ok(self)
+    }
+    
 }
 
 #[cfg(test)]
