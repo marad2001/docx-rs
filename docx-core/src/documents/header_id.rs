@@ -20,3 +20,7 @@ pub fn generate_header_id() -> usize {
 pub fn create_header_rid(id: usize) -> String {
     format!("rIdHeader{}", id)
 }
+
+pub fn parse_header_rid_index(rid: &str) -> Option<usize> {
+    rid.strip_prefix("rIdHeader").and_then(|s| s.parse().ok())
+}

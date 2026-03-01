@@ -22,3 +22,7 @@ pub fn generate_footer_id() -> usize {
 pub fn create_footer_rid(id: usize) -> String {
     format!("rIdFooter{}", id)
 }
+
+pub fn parse_footer_rid_index(rid: &str) -> Option<usize> {
+    rid.strip_prefix("rIdFooter").and_then(|s| s.parse().ok())
+}

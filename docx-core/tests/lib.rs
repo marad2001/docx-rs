@@ -455,3 +455,110 @@ pub fn line_spacing() -> Result<(), DocxError> {
         .pack(file)?;
     Ok(())
 }
+
+#[test]
+pub fn section_break_with_headers() -> Result<(), DocxError> {
+    let path = std::path::Path::new("./tests/output/section_break_with_headers.docx");
+    let file = std::fs::File::create(path).unwrap();
+
+    // Front matter section: no header/footer
+    let mut front_sp = SectionProperty::new();
+    front_sp.section_type = Some(SectionType::NextPage);
+
+    // Body section: with header and footer
+    let body_header = Header::new().add_paragraph(
+        Paragraph::new().add_run(Run::new().add_text("Body Header")),
+    );
+    let body_footer = Footer::new().add_paragraph(
+        Paragraph::new().add_run(Run::new().add_text("Body Footer")),
+    );
+    let mut body_sp = SectionProperty::new();
+    body_sp.section_type = Some(SectionType::NextPage);
+    body_sp.header = Some(body_header);
+    body_sp.footer = Some(body_footer);
+
+    Docx::new()
+        // Front matter content
+        .add_paragraph(
+            Paragraph::new().add_run(Run::new().add_text("Cover Page")),
+        )
+        // End front matter section (no headers)
+        .add_section_property(front_sp)
+        // Body content
+        .add_paragraph(
+            Paragraph::new().add_run(Run::new().add_text("Body Content")),
+        )
+        // End body section (with headers)
+        .add_section_property(body_sp)
+        // Back matter content (uses doc-level section property, no headers)
+        .add_paragraph(
+            Paragraph::new().add_run(Run::new().add_text("Back Matter")),
+        )
+        .build()
+        .pack(file)?;
+    Ok(())
+}
+
+#[test]
+pub fn section_break_xml_structure() {
+    // Verify the XML contains section properties in paragraph pPr elements
+    let mut front_sp = SectionProperty::new();
+    front_sp.section_type = Some(SectionType::NextPage);
+
+    let body_header = Header::new().add_paragraph(
+        Paragraph::new().add_run(Run::new().add_text("Header Text")),
+    );
+    let mut body_sp = SectionProperty::new();
+    body_sp.section_type = Some(SectionType::NextPage);
+    body_sp.header = Some(body_header);
+
+    let docx = Docx::new()
+        .add_paragraph(
+            Paragraph::new().add_run(Run::new().add_text("Section 1")),
+        )
+        .add_section_property(front_sp)
+        .add_paragraph(
+            Paragraph::new().add_run(Run::new().add_text("Section 2")),
+        )
+        .add_section_property(body_sp);
+
+    let xml_docx = docx.build();
+
+    // Check document XML contains sectPr in pPr
+    let doc_xml = std::str::from_utf8(&xml_docx.document).unwrap();
+    assert!(
+        doc_xml.contains("<w:sectPr>"),
+        "Document XML should contain paragraph-level sectPr"
+    );
+
+    // Check that we have exactly 1 header (from the body section)
+    assert_eq!(
+        xml_docx.headers.len(),
+        1,
+        "Should have 1 header XML part"
+    );
+
+    // Verify the header contains the expected text
+    let header_xml = std::str::from_utf8(&xml_docx.headers[0]).unwrap();
+    assert!(
+        header_xml.contains("Header Text"),
+        "Header should contain 'Header Text': {}",
+        header_xml
+    );
+
+    // Check document rels has the header reference
+    let rels_xml = std::str::from_utf8(&xml_docx.document_rels).unwrap();
+    assert!(
+        rels_xml.contains("rIdHeader1"),
+        "Document rels should reference rIdHeader1: {}",
+        rels_xml
+    );
+
+    // Check content types has header
+    let ct_xml = std::str::from_utf8(&xml_docx.content_type).unwrap();
+    assert!(
+        ct_xml.contains("header1.xml"),
+        "Content types should reference header1.xml: {}",
+        ct_xml
+    );
+}

@@ -244,6 +244,7 @@ impl BuildXML for ParagraphProperty {
                     .apply_each(&self.tabs, |tab, b| b.tab(tab.val, tab.leader, tab.pos))?
                     .close()
             })?
+            .add_optional_child(&self.section_property)?
             .close()?
             .into_inner()
     }
@@ -332,5 +333,23 @@ mod tests {
             str::from_utf8(&bytes).unwrap(),
             r#"<w:pPr><w:rPr /><w:spacing w:line="100" w:lineRule="atLeast" /></w:pPr>"#
         )
+    }
+
+    #[test]
+    fn test_section_property_serialized() {
+        let sp = SectionProperty::new();
+        let props = ParagraphProperty::new().section_property(sp);
+        let bytes = props.build();
+        let xml = str::from_utf8(&bytes).unwrap();
+        assert!(
+            xml.contains("<w:sectPr>"),
+            "pPr should contain sectPr: {}",
+            xml
+        );
+        assert!(
+            xml.starts_with("<w:pPr>") && xml.ends_with("</w:pPr>"),
+            "should be wrapped in pPr: {}",
+            xml
+        );
     }
 }
